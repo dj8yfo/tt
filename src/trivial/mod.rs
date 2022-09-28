@@ -39,7 +39,6 @@ impl<K, V> Mappy<K, V> for VMapTriv<K, V>
 where
     K: Eq + Hash + Clone,
     V: Clone,
-
 {
     #[allow(unused)]
     fn insert(&mut self, k: K, v: V) -> Option<V> {
@@ -69,13 +68,12 @@ where
         let snapshot = latest_map.clone();
 
         self.inner.insert(Version::Tagged(tag), snapshot);
-
     }
 
     fn rollback(&mut self, tag: String) -> bool {
         if let Some(snapshot) = self.inner.get(&Version::Tagged(tag)) {
             self.inner.insert(Version::Latest, snapshot.clone());
-            return true
+            return true;
         }
         false
     }
@@ -83,15 +81,15 @@ where
     fn prune(&mut self) {
         let latest = self.inner.remove(&Version::Latest).unwrap();
 
-        for (_k, _v) in self.inner.drain() {
-        }
+        for (_k, _v) in self.inner.drain() {}
         self.inner.insert(Version::Latest, latest);
     }
-
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use quickcheck::{QuickCheck, TestResult};
     use rand::{thread_rng, Rng};
 
@@ -109,7 +107,7 @@ mod tests {
 
     #[allow(clippy::map_flatten)]
     #[allow(clippy::manual_retain)]
-    fn cartesian_product(mut input: Vec<String>) -> Vec<(String, u32)> {
+    fn cartesian_product(mut input: HashSet<String>) -> Vec<(String, u32)> {
         let prefixes = common_prefixes();
         let mut rng = thread_rng();
 
@@ -118,7 +116,7 @@ mod tests {
             .filter(|item_y| !item_y.is_empty())
             .collect();
 
-        let mut product: Vec<String> = prefixes
+        let product = prefixes
             .iter()
             .map(|item_x| {
                 input.iter().map(move |item_y| {
@@ -129,18 +127,13 @@ mod tests {
                 })
             })
             .flatten()
-            .collect();
-        product.sort_unstable();
-        product.dedup();
-
-        product
-            .into_iter()
             .map(|key| (key, rng.next_u32()))
-            .collect()
+            .collect();
+        product
     }
     #[test]
     fn get_what_you_give_continuous() {
-        fn property(keys: Vec<String>) -> TestResult {
+        fn property(keys: HashSet<String>) -> TestResult {
             let entries = cartesian_product(keys);
             let entries_to_remove = entries.clone();
 
@@ -165,6 +158,6 @@ mod tests {
             TestResult::passed()
         }
         // quickcheck doesn't work with closures, unfortunately
-        QuickCheck::new().quickcheck(property as fn(Vec<String>) -> TestResult);
+        QuickCheck::new().quickcheck(property as fn(HashSet<String>) -> TestResult);
     }
 }

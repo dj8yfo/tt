@@ -1,8 +1,5 @@
-
-
 use std::collections::HashMap;
 use std::hash::Hash;
-
 
 #[allow(unused)]
 #[derive(Hash, Eq, PartialEq)]
@@ -12,38 +9,38 @@ enum Version {
 }
 
 #[allow(unused)]
-type VersionedMapTrivial<K,V> = VMapTriv<K,V>;
+type VersionedMapTrivial<K, V> = VMapTriv<K, V>;
 
 #[allow(unused)]
 pub struct VMapTriv<K, V> {
     inner: HashMap<Version, HashMap<K, V>>,
 }
 
-
-
-pub trait Mappy<K,V> {
+pub trait Mappy<K, V: Clone> {
     fn insert(&mut self, k: K, v: V) -> Option<V>;
     fn get(&self, k: &K) -> Option<&V>;
     fn remove(&mut self, k: &K) -> Option<V>;
+
+    fn checkpoint(&mut self, tag: String);
+    fn rollback(&mut self, tag: String) -> bool;
+    fn prune(&mut self);
 }
 
 impl<K, V> VMapTriv<K, V> {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-
-        let mut map = HashMap::<Version, HashMap<K,V>>::new();
+        let mut map = HashMap::<Version, HashMap<K, V>>::new();
         map.insert(Version::Latest, HashMap::new());
-        Self {
-            inner: map,
-        }
-        
+        Self { inner: map }
     }
 }
 
-impl<K, V> Mappy<K,V> for VMapTriv<K, V>
+impl<K, V> Mappy<K, V> for VMapTriv<K, V>
 where
-    K: Eq + Hash {
+    K: Eq + Hash + Clone,
+    V: Clone,
 
+{
     #[allow(unused)]
     fn insert(&mut self, k: K, v: V) -> Option<V> {
         let latest_map = self.inner.get_mut(&Version::Latest).unwrap();
@@ -52,8 +49,7 @@ where
     }
 
     #[allow(unused)]
-    fn get(&self, k: &K) -> Option<&V>
-    {
+    fn get(&self, k: &K) -> Option<&V> {
         let latest_map = self.inner.get(&Version::Latest).unwrap();
         latest_map.get(k)
     }
@@ -68,15 +64,38 @@ where
         latest_map.remove(k)
     }
 
+    fn checkpoint(&mut self, tag: String) {
+        let latest_map = self.inner.get(&Version::Latest).unwrap();
+        let snapshot = latest_map.clone();
+
+        self.inner.insert(Version::Tagged(tag), snapshot);
+
+    }
+
+    fn rollback(&mut self, tag: String) -> bool {
+        if let Some(snapshot) = self.inner.get(&Version::Tagged(tag)) {
+            self.inner.insert(Version::Latest, snapshot.clone());
+            return true
+        }
+        false
+    }
+
+    fn prune(&mut self) {
+        let latest = self.inner.remove(&Version::Latest).unwrap();
+
+        for (_k, _v) in self.inner.drain() {
+        }
+        self.inner.insert(Version::Latest, latest);
+    }
+
 }
 
 #[cfg(test)]
 mod tests {
-    use quickcheck::{TestResult, QuickCheck};
+    use quickcheck::{QuickCheck, TestResult};
     use rand::{thread_rng, Rng};
 
     use super::*;
-
 
     fn common_prefixes() -> Vec<String> {
         vec![
@@ -114,29 +133,25 @@ mod tests {
         product.sort_unstable();
         product.dedup();
 
-        product.into_iter().map(
-            |key| 
-            (key, rng.next_u32())
-        ).collect()
+        product
+            .into_iter()
+            .map(|key| (key, rng.next_u32()))
+            .collect()
     }
     #[test]
     fn get_what_you_give_continuous() {
-        fn property(keys: Vec<String>) -> TestResult 
-
-        {
+        fn property(keys: Vec<String>) -> TestResult {
             let entries = cartesian_product(keys);
-            let entries_to_remove = entries.clone(); 
+            let entries_to_remove = entries.clone();
 
             let hashmap = VMapTriv::new();
-            let mut system_under_test : Box<dyn Mappy<String, u32>> = Box::new(hashmap);
+            let mut system_under_test: Box<dyn Mappy<String, u32>> = Box::new(hashmap);
             for entry in entries.into_iter() {
                 let (key, value) = entry;
                 let k_clone = key.clone();
 
                 system_under_test.insert(key, value);
                 assert_eq!(Some(&value), system_under_test.get(&k_clone));
-
-
             }
 
             for entry in entries_to_remove.into_iter() {
@@ -145,15 +160,11 @@ mod tests {
                 let val_removed = system_under_test.remove(&key);
                 assert_eq!(Some(value), val_removed);
                 assert_eq!(None, system_under_test.get(&key));
-
             }
-
-
 
             TestResult::passed()
         }
         // quickcheck doesn't work with closures, unfortunately
         QuickCheck::new().quickcheck(property as fn(Vec<String>) -> TestResult);
     }
-
 }

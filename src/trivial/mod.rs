@@ -106,7 +106,7 @@ mod tests {
             .filter(|item_y| !item_y.is_empty())
             .collect();
 
-        let product = prefixes
+        let product: HashSet<String> = prefixes
             .iter()
             .map(|item_x| {
                 input.iter().map(move |item_y| {
@@ -117,9 +117,12 @@ mod tests {
                 })
             })
             .flatten()
-            .map(|key| (key, rng.next_u32()))
             .collect();
+
         product
+            .into_iter()
+            .map(|key| (key, rng.next_u32()))
+            .collect()
     }
 
     #[test]

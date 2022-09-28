@@ -97,9 +97,8 @@ mod tests {
 
     #[allow(clippy::map_flatten)]
     #[allow(clippy::manual_retain)]
-    fn cartesian_product(mut input: HashSet<String>) -> Vec<(String, u32)> {
+    fn cartesian_product(mut input: HashSet<String>) -> HashSet<String> {
         let prefixes = common_prefixes();
-        let mut rng = thread_rng();
 
         input = input
             .into_iter()
@@ -118,8 +117,12 @@ mod tests {
             })
             .flatten()
             .collect();
-
         product
+    }
+
+    fn attach_values(input: HashSet<String>) -> Vec<(String, u32)> {
+        let mut rng = thread_rng();
+        input
             .into_iter()
             .map(|key| (key, rng.next_u32()))
             .collect()
@@ -128,7 +131,7 @@ mod tests {
     #[test]
     fn get_inserted() {
         fn property(keys: HashSet<String>) -> TestResult {
-            let entries = cartesian_product(keys);
+            let entries = attach_values(cartesian_product(keys));
 
             let hashmap = VMapTriv::new();
             let mut under_test: Box<dyn crate::Mappy<String, u32>> = Box::new(hashmap);
@@ -150,7 +153,7 @@ mod tests {
     #[test]
     fn remove_inserted() {
         fn property(keys: HashSet<String>) -> TestResult {
-            let entries = cartesian_product(keys);
+            let entries = attach_values(cartesian_product(keys));
 
             let hashmap = VMapTriv::new();
             let mut under_test: Box<dyn crate::Mappy<String, u32>> = Box::new(hashmap);
@@ -174,11 +177,14 @@ mod tests {
     #[test]
     fn checkpoint_rollback_union() {
         fn property(keys_one: HashSet<String>, keys_two: HashSet<String>) -> TestResult {
-            let keys_one = keys_one.difference(&keys_two).map(Clone::clone).collect();
+            let mut keys_one = cartesian_product(keys_one);
+            let keys_two = cartesian_product(keys_two);
+
+            keys_one = keys_one.difference(&keys_two).map(Clone::clone).collect();
 
             let epochs: Vec<Vec<(String, u32)>> = [keys_one, keys_two]
                 .into_iter()
-                .map(cartesian_product)
+                .map(attach_values)
                 .collect();
 
             let hashmap = VMapTriv::new();
@@ -237,7 +243,11 @@ mod tests {
             keys_left: HashSet<String>,
             keys_deleted: HashSet<String>,
         ) -> TestResult {
-            let keys_left: HashSet<String> = keys_left
+
+            let mut keys_left = cartesian_product(keys_left);
+            let keys_deleted = cartesian_product(keys_deleted);
+
+            keys_left = keys_left
                 .difference(&keys_deleted)
                 .map(Clone::clone)
                 .collect();
@@ -245,7 +255,7 @@ mod tests {
 
             let epochs: Vec<Vec<(String, u32)>> = [keys_full, keys_deleted]
                 .into_iter()
-                .map(cartesian_product)
+                .map(attach_values)
                 .collect();
 
             let hashmap = VMapTriv::new();
@@ -283,7 +293,7 @@ mod tests {
     #[test]
     fn snapshots_prune() {
         fn property(keys_one: HashSet<String>) -> TestResult {
-            let entries_one = cartesian_product(keys_one);
+            let entries_one = attach_values(cartesian_product(keys_one));
 
             let hashmap = VMapTriv::new();
             let mut under_test: Box<dyn crate::Mappy<String, u32>> = Box::new(hashmap);

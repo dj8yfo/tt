@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
-mod node;
 mod as_bytes;
+mod node;
 
 use as_bytes::AsFromBytes;
 use node::Node;
@@ -14,7 +14,6 @@ pub struct VMapTree<K, V> {
     _phantom_data: PhantomData<K>,
 }
 impl<K, V> VMapTree<K, V> {
-
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
@@ -24,24 +23,28 @@ impl<K, V> VMapTree<K, V> {
     }
 }
 
-fn bytes<K: AsFromBytes> (input: &K) -> &[u8] {
+fn bytes<K: AsFromBytes>(input: &K) -> &[u8] {
     let bytes = input.as_bytes();
-    if bytes.is_empty(){
+    if bytes.is_empty() {
         panic!("not bothering here with empty keys");
     }
     bytes
 }
 
-impl<K, V> super::VersionedMap<K, V> for VMapTree<K, V> 
-where K: as_bytes::AsFromBytes,
-    V: Clone {
+impl<K, V> Drop for VMapTree<K, V> {
+    fn drop(&mut self) {
+        node::vacuum_clean(&mut self.root);
+    }
+}
 
+impl<K, V> super::VersionedMap<K, V> for VMapTree<K, V>
+where
+    K: as_bytes::AsFromBytes,
+    V: Clone,
+{
     fn insert(&mut self, k: K, v: V) -> Option<V> {
         let iter = bytes(&k).iter();
-        let _prev_root = self.root.clone();
-        // TODO: implement manual drop
         self.root.insert(iter, v)
-
     }
     fn get(&self, k: &K) -> Option<&V> {
         let iter = bytes(k).iter();
@@ -51,18 +54,16 @@ where K: as_bytes::AsFromBytes,
         unimplemented!("");
     }
 
-    fn checkpoint(&mut self, tag: String){
+    fn checkpoint(&mut self, tag: String) {
         unimplemented!("");
     }
-    fn rollback(&mut self, tag: String) -> bool{
+    fn rollback(&mut self, tag: String) -> bool {
         unimplemented!("");
     }
-    fn prune(&mut self){
+    fn prune(&mut self) {
         unimplemented!("");
     }
-
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -74,14 +75,14 @@ mod tests {
 
     use crate::test_helpers::{attach_values, cartesian_product};
 
-
     #[test]
     fn get_inserted() {
         fn property(keys: HashSet<String>) -> TestResult {
             let entries = attach_values(cartesian_product(keys));
 
             let hashmap = VMapTree::new();
-            let mut under_test: Box<dyn crate::VersionedMap<String, u32>> = Box::new(hashmap);
+            let mut under_test: Box<dyn crate::VersionedMap<String, u32>> =
+                Box::new(hashmap);
 
             for (key, value) in entries.clone() {
                 assert_eq!(None, under_test.get(&key));

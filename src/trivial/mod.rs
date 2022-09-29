@@ -86,14 +86,14 @@ mod tests {
 
     use crate::test_helpers::{attach_values, cartesian_product};
 
-
     #[test]
     fn get_inserted() {
         fn property(keys: HashSet<String>) -> TestResult {
             let entries = attach_values(cartesian_product(keys));
 
             let hashmap = VMapTriv::new();
-            let mut under_test: Box<dyn crate::VersionedMap<String, u32>> = Box::new(hashmap);
+            let mut under_test: Box<dyn crate::VersionedMap<String, u32>> =
+                Box::new(hashmap);
 
             for (key, value) in entries.clone() {
                 assert_eq!(None, under_test.get(&key));
@@ -115,7 +115,8 @@ mod tests {
             let entries = attach_values(cartesian_product(keys));
 
             let hashmap = VMapTriv::new();
-            let mut under_test: Box<dyn crate::VersionedMap<String, u32>> = Box::new(hashmap);
+            let mut under_test: Box<dyn crate::VersionedMap<String, u32>> =
+                Box::new(hashmap);
 
             for (key, value) in entries.clone() {
                 under_test.insert(key, value);
@@ -147,7 +148,8 @@ mod tests {
                 .collect();
 
             let hashmap = VMapTriv::new();
-            let mut under_test: Box<dyn crate::VersionedMap<String, u32>> = Box::new(hashmap);
+            let mut under_test: Box<dyn crate::VersionedMap<String, u32>> =
+                Box::new(hashmap);
 
             under_test.checkpoint("EMPTY".to_owned());
 
@@ -202,7 +204,6 @@ mod tests {
             keys_left: HashSet<String>,
             keys_deleted: HashSet<String>,
         ) -> TestResult {
-
             let mut keys_left = cartesian_product(keys_left);
             let keys_deleted = cartesian_product(keys_deleted);
 
@@ -218,7 +219,8 @@ mod tests {
                 .collect();
 
             let hashmap = VMapTriv::new();
-            let mut under_test: Box<dyn crate::VersionedMap<String, u32>> = Box::new(hashmap);
+            let mut under_test: Box<dyn crate::VersionedMap<String, u32>> =
+                Box::new(hashmap);
 
             for (key, value) in epochs[0].clone().into_iter() {
                 under_test.insert(key, value);
@@ -255,7 +257,8 @@ mod tests {
             let entries_one = attach_values(cartesian_product(keys_one));
 
             let hashmap = VMapTriv::new();
-            let mut under_test: Box<dyn crate::VersionedMap<String, u32>> = Box::new(hashmap);
+            let mut under_test: Box<dyn crate::VersionedMap<String, u32>> =
+                Box::new(hashmap);
 
             under_test.checkpoint("EMPTY".to_owned());
 

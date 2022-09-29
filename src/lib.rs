@@ -1,5 +1,5 @@
-pub mod trivial;
 pub mod treelike;
+pub mod trivial;
 
 #[cfg(test)]
 pub(crate) mod test_helpers;
@@ -13,4 +13,3 @@ pub trait VersionedMap<K, V: Clone> {
     fn rollback(&mut self, tag: String) -> bool;
     fn prune(&mut self);
 }
-

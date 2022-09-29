@@ -1,4 +1,3 @@
-
 use rand::{thread_rng, Rng};
 use std::collections::HashSet;
 
@@ -19,7 +18,8 @@ pub fn cartesian_product(mut input: HashSet<String>) -> HashSet<String> {
 
     input = input
         .into_iter()
-        .filter(|item_y| !item_y.is_empty())
+        // this limit is to avoid stack overflows when testing without --release flag
+        .filter(|item_y| !item_y.is_empty() && item_y.len() < 100)
         .collect();
 
     let product: HashSet<String> = prefixes

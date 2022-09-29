@@ -1,3 +1,4 @@
+
 use rand::{thread_rng, Rng};
 use std::collections::HashSet;
 
@@ -19,6 +20,8 @@ pub fn cartesian_product(mut input: HashSet<String>) -> HashSet<String> {
     input = input
         .into_iter()
         // this limit is to avoid stack overflows when testing without --release flag
+        // as the chains get pretty long
+        // and debug info appears to clog stack on recursive operations
         .filter(|item_y| !item_y.is_empty() && item_y.len() < 100)
         .collect();
 

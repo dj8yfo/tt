@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::rc::Rc;
 use std::slice::Iter;
 
@@ -7,7 +8,11 @@ const BYTE_VALS: usize = 256;
 pub struct Node<V> {
     terminal: Option<Rc<V>>,
 
-    branches: [Option<Rc<Node<V>>>; BYTE_VALS ]
+    // the refcell part is only needed to manually implement drop
+    // to avoid stack overflows
+    //
+    // safety: borrow_mut should only ocur under node and VMapTree mutable methods
+    branches: [Option<Rc<RefCell<Node<V>>>>; BYTE_VALS ]
 }
 
 impl<V> Node<V> {
@@ -39,12 +44,12 @@ impl<V: Clone> Node<V> {
                     None => {
                         let mut node = Node::new();
                         let result = node.insert(iter, v);
-                        self.branches[*b as usize] = Some(Rc::new(node)); 
+                        self.branches[*b as usize] = Some(Rc::new(RefCell::new(node))); 
                         result
                     }, 
                     Some(rc) => {
-                        let mut slight_copy = (*rc).clone();
-                        let result = slight_copy.insert(iter, v);
+                        let slight_copy = (*rc).clone();
+                        let result = slight_copy.borrow_mut().insert(iter, v);
                         self.branches[*b as usize] = Some(Rc::new(slight_copy)); 
                         result
                     }, 
@@ -63,7 +68,7 @@ impl<V: Clone> Node<V> {
                 match &self.branches[*b as usize] {
                     None => { None },
                     Some(rc) => {
-                        rc.get(iter)
+                        unsafe {rc.try_borrow_unguarded().unwrap().get(iter)}
                     }, 
                 }
             },

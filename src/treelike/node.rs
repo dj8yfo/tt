@@ -90,4 +90,42 @@ impl<V: Clone> Node<V> {
             },
         }
     }
+
+    pub fn remove(&mut self, mut iter: Iter<'_, u8>) -> (bool, Option<V>) {
+        match iter.next() {
+            None => {
+                let result = self.terminal.take().map(|rc| (*rc).clone());
+                if result.is_none() {
+                    return (false, None);
+                }
+                let should_remove = !self.branches.iter().any(|el| el.is_some());
+                (should_remove, result)
+            }
+            Some(b) => {
+                if self.branches[*b as usize].is_none() {
+                    return (false, None);
+                }
+                let prev = self.branches[*b as usize].take();
+                match prev {
+                    None => {
+                        unreachable!()
+                    }
+
+                    Some(rc) => {
+                        let slight_copy = (*rc).clone();
+                        let (should_remove, result) =
+                            slight_copy.borrow_mut().remove(iter);
+                        if !should_remove {
+                            self.branches[*b as usize] = Some(Rc::new(slight_copy));
+                            (false, result)
+                        } else {
+                            let should_remove = self.terminal.is_none()
+                                && !self.branches.iter().any(|el| el.is_some());
+                            (should_remove, result)
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

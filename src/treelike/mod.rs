@@ -51,7 +51,9 @@ where
         self.root.get(iter)
     }
     fn remove(&mut self, k: &K) -> Option<V> {
-        unimplemented!("");
+        let iter = bytes(k).iter();
+        let (_, res) = self.root.remove(iter);
+        res
     }
 
     fn checkpoint(&mut self, tag: String) {
@@ -80,9 +82,9 @@ mod tests {
         fn property(keys: HashSet<String>) -> TestResult {
             let entries = attach_values(cartesian_product(keys));
 
-            let hashmap = VMapTree::new();
+            let treelike = VMapTree::new();
             let mut under_test: Box<dyn crate::VersionedMap<String, u32>> =
-                Box::new(hashmap);
+                Box::new(treelike);
 
             for (key, value) in entries.clone() {
                 assert_eq!(None, under_test.get(&key));
@@ -90,6 +92,31 @@ mod tests {
             }
             for (key, value) in &entries {
                 assert_eq!(Some(value), under_test.get(key));
+            }
+
+            TestResult::passed()
+        }
+        // quickcheck doesn't work with closures, unfortunately
+        QuickCheck::new().quickcheck(property as fn(HashSet<String>) -> TestResult);
+    }
+
+    #[test]
+    fn remove_inserted() {
+        fn property(keys: HashSet<String>) -> TestResult {
+            let entries = attach_values(cartesian_product(keys));
+
+            let treelike = VMapTree::new();
+            let mut under_test: Box<dyn crate::VersionedMap<String, u32>> =
+                Box::new(treelike);
+
+            for (key, value) in entries.clone() {
+                under_test.insert(key, value);
+            }
+
+            for (key, value) in entries {
+                let val_removed = under_test.remove(&key);
+                assert_eq!(Some(value), val_removed);
+                assert_eq!(None, under_test.get(&key));
             }
 
             TestResult::passed()

@@ -44,7 +44,8 @@ where K: as_bytes::AsFromBytes,
 
     }
     fn get(&self, k: &K) -> Option<&V> {
-        unimplemented!("");
+        let iter = bytes(k).iter();
+        self.root.get(iter)
     }
     fn remove(&mut self, k: &K) -> Option<V> {
         unimplemented!("");

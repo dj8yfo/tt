@@ -53,5 +53,23 @@ impl<V: Clone> Node<V> {
         }
 
     }
+
+    pub fn get(&self, mut iter: Iter<'_, u8>) -> Option<&V> {
+        match iter.next() {
+            None => {
+                self.terminal.as_deref()
+            },
+            Some(b) => {
+                match &self.branches[*b as usize] {
+                    None => { None },
+                    Some(rc) => {
+                        rc.get(iter)
+                    }, 
+                }
+            },
+
+        }
+        
+    }
 }
 

@@ -25,7 +25,7 @@ impl<K, V> VMapTriv<K, V> {
     }
 }
 
-impl<K, V> super::Mappy<K, V> for VMapTriv<K, V>
+impl<K, V> super::VersionedMap<K, V> for VMapTriv<K, V>
 where
     K: Eq + Hash + Clone,
     V: Clone,
@@ -81,52 +81,11 @@ mod tests {
     use std::collections::HashSet;
 
     use quickcheck::{QuickCheck, TestResult};
-    use rand::{thread_rng, Rng};
 
     use super::*;
 
-    fn common_prefixes() -> Vec<String> {
-        vec![
-            "".to_owned(),
-            "a".to_owned(),
-            "ab".to_owned(),
-            "abc".to_owned(),
-            "abcd".to_owned(),
-        ]
-    }
+    use crate::test_helpers::{attach_values, cartesian_product};
 
-    #[allow(clippy::map_flatten)]
-    #[allow(clippy::manual_retain)]
-    fn cartesian_product(mut input: HashSet<String>) -> HashSet<String> {
-        let prefixes = common_prefixes();
-
-        input = input
-            .into_iter()
-            .filter(|item_y| !item_y.is_empty())
-            .collect();
-
-        let product: HashSet<String> = prefixes
-            .iter()
-            .map(|item_x| {
-                input.iter().map(move |item_y| {
-                    let mut new_str = item_x.clone();
-                    let pushed = &item_y;
-                    new_str.push_str(pushed);
-                    new_str
-                })
-            })
-            .flatten()
-            .collect();
-        product
-    }
-
-    fn attach_values(input: HashSet<String>) -> Vec<(String, u32)> {
-        let mut rng = thread_rng();
-        input
-            .into_iter()
-            .map(|key| (key, rng.next_u32()))
-            .collect()
-    }
 
     #[test]
     fn get_inserted() {
@@ -134,7 +93,7 @@ mod tests {
             let entries = attach_values(cartesian_product(keys));
 
             let hashmap = VMapTriv::new();
-            let mut under_test: Box<dyn crate::Mappy<String, u32>> = Box::new(hashmap);
+            let mut under_test: Box<dyn crate::VersionedMap<String, u32>> = Box::new(hashmap);
 
             for (key, value) in entries.clone() {
                 assert_eq!(None, under_test.get(&key));
@@ -156,7 +115,7 @@ mod tests {
             let entries = attach_values(cartesian_product(keys));
 
             let hashmap = VMapTriv::new();
-            let mut under_test: Box<dyn crate::Mappy<String, u32>> = Box::new(hashmap);
+            let mut under_test: Box<dyn crate::VersionedMap<String, u32>> = Box::new(hashmap);
 
             for (key, value) in entries.clone() {
                 under_test.insert(key, value);
@@ -188,7 +147,7 @@ mod tests {
                 .collect();
 
             let hashmap = VMapTriv::new();
-            let mut under_test: Box<dyn crate::Mappy<String, u32>> = Box::new(hashmap);
+            let mut under_test: Box<dyn crate::VersionedMap<String, u32>> = Box::new(hashmap);
 
             under_test.checkpoint("EMPTY".to_owned());
 
@@ -259,7 +218,7 @@ mod tests {
                 .collect();
 
             let hashmap = VMapTriv::new();
-            let mut under_test: Box<dyn crate::Mappy<String, u32>> = Box::new(hashmap);
+            let mut under_test: Box<dyn crate::VersionedMap<String, u32>> = Box::new(hashmap);
 
             for (key, value) in epochs[0].clone().into_iter() {
                 under_test.insert(key, value);
@@ -296,7 +255,7 @@ mod tests {
             let entries_one = attach_values(cartesian_product(keys_one));
 
             let hashmap = VMapTriv::new();
-            let mut under_test: Box<dyn crate::Mappy<String, u32>> = Box::new(hashmap);
+            let mut under_test: Box<dyn crate::VersionedMap<String, u32>> = Box::new(hashmap);
 
             under_test.checkpoint("EMPTY".to_owned());
 

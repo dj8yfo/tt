@@ -4,20 +4,32 @@ mod node;
 mod as_bytes;
 
 use as_bytes::AsFromBytes;
+use node::Node;
 #[allow(unused)]
 type VersionedMapTreeLike<K, V> = VMapTree<K, V>;
 
-pub struct VMapTree<K: AsFromBytes, V> {
-    root: node::Node<V>,
+pub struct VMapTree<K, V> {
+    root: Node<V>,
 
     _phantom_data: PhantomData<K>,
 }
-impl<K: AsFromBytes, V> VMapTree<K, V> {
+impl<K, V> VMapTree<K, V> {
 
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        unimplemented!("");
+        Self {
+            root: Node::new(),
+            _phantom_data: PhantomData,
+        }
     }
+}
+
+fn bytes<K: AsFromBytes> (input: &K) -> &[u8] {
+    let bytes = input.as_bytes();
+    if bytes.is_empty(){
+        panic!("not bothering here with empty keys");
+    }
+    bytes
 }
 
 impl<K, V> super::VersionedMap<K, V> for VMapTree<K, V> 
@@ -25,7 +37,11 @@ where K: as_bytes::AsFromBytes,
     V: Clone {
 
     fn insert(&mut self, k: K, v: V) -> Option<V> {
-        unimplemented!("");
+        let iter = bytes(&k).iter();
+        let _prev_root = self.root.clone();
+        // TODO: implement manual drop
+        self.root.insert(iter, v)
+
     }
     fn get(&self, k: &K) -> Option<&V> {
         unimplemented!("");

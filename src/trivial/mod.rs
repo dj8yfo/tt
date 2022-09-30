@@ -105,7 +105,6 @@ mod tests {
 
             TestResult::passed()
         }
-        // quickcheck doesn't work with closures, unfortunately
         QuickCheck::new().quickcheck(property as fn(HashSet<String>) -> TestResult);
     }
 
@@ -130,7 +129,6 @@ mod tests {
 
             TestResult::passed()
         }
-        // quickcheck doesn't work with closures, unfortunately
         QuickCheck::new().quickcheck(property as fn(HashSet<String>) -> TestResult);
     }
 
@@ -193,7 +191,6 @@ mod tests {
 
             TestResult::passed()
         }
-        // quickcheck doesn't work with closures, unfortunately
         QuickCheck::new()
             .quickcheck(property as fn(HashSet<String>, HashSet<String>) -> TestResult);
     }
@@ -278,7 +275,6 @@ mod tests {
 
             TestResult::passed()
         }
-        // quickcheck doesn't work with closures, unfortunately
         QuickCheck::new().quickcheck(property as fn(HashSet<String>) -> TestResult);
     }
 }

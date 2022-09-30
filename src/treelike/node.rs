@@ -12,7 +12,9 @@ pub struct Node<V> {
     // the refcell part is only needed to manually implement drop
     // to avoid stack overflows
     //
-    // safety: borrow_mut should only ocur under node and VMapTree mutable methods
+    // SAFETY: borrow_mut should only ocur under node and VMapTree mutable methods;
+    // in this case the unsafe RefCell.try_borrow_unguarded borrow from node.get 
+    // won't be around when RefCell.borrow_mut happens 
     branches: [Option<Rc<RefCell<Node<V>>>>; BYTE_VALS],
 }
 

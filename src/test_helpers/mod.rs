@@ -1,6 +1,8 @@
 use rand::{thread_rng, Rng};
 use std::collections::HashSet;
 
+pub mod common_tests;
+
 fn common_prefixes() -> Vec<String> {
     vec![
         "".to_owned(),

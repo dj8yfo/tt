@@ -1,4 +1,5 @@
 pub mod treelike;
+pub mod treelike_no_trie;
 pub mod trivial;
 
 #[cfg(test)]

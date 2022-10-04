@@ -59,6 +59,85 @@ macro_rules! versioned_map_trait_tests {
             }
 
             #[test]
+            fn get_inserted_same_keys() {
+                fn property(mut keys: HashSet<String>) -> TestResult {
+                    keys =  cartesian_product(keys);
+                    let entries1 = attach_values(keys.clone());
+                    let entries2 = attach_values(keys);
+
+                    let hashmap = $impl_name::new();
+                    let mut under_test: Box<dyn crate::VersionedMap<String, u32>> =
+                        Box::new(hashmap);
+
+
+                    for entries in [entries1, entries2] {
+
+                        for (key, value) in entries.clone() {
+                            under_test.insert(key, value);
+                        }
+                        for (key, value) in &entries {
+                            assert_eq!(Some(value), under_test.get(key));
+                        }
+                    }
+
+                    TestResult::passed()
+                }
+                QuickCheck::new()
+                    .quickcheck(property as fn(HashSet<String>) -> TestResult);
+            }
+
+            #[test]
+            fn checkpoint_rollback_same_set_different_vals() {
+                fn property(
+                    keys_one: HashSet<String>,
+                ) -> TestResult {
+                    let keys_one = cartesian_product(keys_one);
+
+
+                    let epochs: Vec<Vec<(String, u32)>> = [keys_one.clone(), keys_one]
+                        .into_iter()
+                        .map(attach_values)
+                        .collect();
+
+                    let hashmap = $impl_name::new();
+                    let mut under_test: Box<dyn crate::VersionedMap<String, u32>> =
+                        Box::new(hashmap);
+
+                    under_test.checkpoint("EMPTY".to_owned());
+
+                    for (key, value) in epochs[0].clone() {
+                        under_test.insert(key, value);
+                    }
+
+                    under_test.checkpoint("ONE".to_owned());
+
+                    for (key, value) in epochs[1].clone() {
+                        under_test.insert(key, value);
+                    }
+
+                    under_test.checkpoint("TWO".to_owned());
+
+                    for (k, v) in &epochs[1].clone() {
+                        assert_eq!(Some(v), under_test.get(k))
+                    }
+                    assert!(under_test.rollback("ONE".to_owned()));
+                    for (k, v) in &epochs[0] {
+                        assert_eq!(Some(v), under_test.get(k))
+                    }
+
+                    assert!(under_test.rollback("TWO".to_owned()));
+                    for (k, v) in &epochs[1].clone() {
+                        assert_eq!(Some(v), under_test.get(k))
+                    }
+
+                    TestResult::passed()
+                }
+                QuickCheck::new().quickcheck(
+                    property as fn(HashSet<String>) -> TestResult,
+                );
+            }
+
+            #[test]
             fn checkpoint_rollback_union() {
                 fn property(
                     keys_one: HashSet<String>,

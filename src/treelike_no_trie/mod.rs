@@ -43,13 +43,17 @@ type VersionedMapTreelikeNoTrie<K, V> = VMapNoTrie<K, V>;
 struct VMapNoTrie<K, V> {
     current_ver: u64,
     state: HashMap<K, BTreeMap<Version, Option<V>>>,
+    snapshots: HashMap<String, Version>,
 }
+
+const ABSOLUTE_FIRST_VERSION: u64 = 0;
 
 impl<K, V> VMapNoTrie<K, V> {
     fn new() -> Self {
         Self {
-            current_ver: 0,
+            current_ver: 1,
             state: HashMap::new(),
+            snapshots: HashMap::new(),
         }
     }
 
@@ -110,6 +114,7 @@ where
         match self.state.get_mut(&k) {
             None => {
                 let mut v_map = BTreeMap::new();
+                v_map.insert(Version::Actual(ABSOLUTE_FIRST_VERSION), None);
                 v_map.insert(Version::Actual(self.current_ver), Some(v));
                 self.state.insert(k, v_map);
                 None
@@ -154,18 +159,37 @@ where
     }
 
     fn checkpoint(&mut self, tag: String) {
-        unimplemented!();
+        self.snapshots
+            .insert(tag, Version::Actual(self.current_ver));
+        self.current_ver += 1;
     }
 
     fn rollback(&mut self, tag: String) -> bool {
-        unimplemented!();
+        let found = {
+            if let Some(vers) = self.snapshots.get(&tag) {
+                vers.num()
+            } else {
+                return false;
+            }
+        };
+        self.current_ver += 1;
+        for (_, v_map) in &mut self.state {
+            v_map.insert(
+                Version::Link {
+                    linked_to: found,
+                    this: self.current_ver,
+                },
+                None,
+            );
+        }
+        self.current_ver += 1;
+        true
     }
 
     fn prune(&mut self) {
-        unimplemented!();
+        for (_k, _v) in self.snapshots.drain() {}
     }
 }
-
 #[cfg(test)]
 use crate::test_helpers::common_tests::versioned_map_trait_tests;
 
